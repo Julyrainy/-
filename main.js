@@ -11,8 +11,8 @@ window.onload = function (){
   const changetime = 3000; // 图片自动播放切换时间
   const time = 300; // 一次位移切换的总时间
   const interval = 10; // 相邻两次位移间隔的时间
-  let animating = false;
-  // 获取list当前left值的兼容性写法的写法
+  let animating = false; // 防止多次点击使得动画来不及响应，当进行animate的时候不允许点击事件
+  // 获取list当前left值的兼容性写法的写法，其实此处没必要写这个
   function getStyle(dom,style){
     return dom.currentStyle?dom.currentStyle.style:window.getComputedStyle(dom,null)[style];
   }
@@ -20,14 +20,17 @@ window.onload = function (){
   // 主要的动画函数，控制图片的滚动行为
   function animate(offset){
     animating = true;
-    let left = parseInt(list.style.left) + offset;
+    let left = parseInt(list.style.left) + offset; // 图片最终位置
     const speed = offset / (time/interval); // 每次位移移动的距离
+    // 该函数实现翻页动画效果
     function go(){
       const currentleft = parseInt(list.style.left);
+      // 若图片位置还未到达终点，则继续递归调用
       if((speed < 0 && currentleft > left) || (speed > 0 && currentleft < left)){
         list.style.left = parseInt(getStyle(list,'left')) + speed + 'px';
         setTimeout(go,interval);
       }
+      // 若图片已到达终点，则查看图片是否为备用图片，若是则充值图片位置
       else{
         if(parseInt(list.style.left) < -3000){
           list.style.left = -600 + 'px';
@@ -35,7 +38,7 @@ window.onload = function (){
         if(parseInt(list.style.left) > -600){
           list.style.left = -3000 + 'px';
         }
-        animating = false
+        animating = false // 将动画开关设为关闭
       }
     }
     go();
@@ -44,7 +47,7 @@ window.onload = function (){
   // 将被选中小圆点变色，同时取消之前被选中小圆点的变色
   function showButton(){
     for(let i = 0;i<button.length;i++){
-      if(button[i].className === 'button on'){
+      if(button[i].className === 'button on'){// 取消前一状态下小圆点的类 on
         button[i].className = 'button';
         break;
       }
@@ -54,21 +57,19 @@ window.onload = function (){
 
   // 根据点击事件，跳转到对应图片
   function buttonChoose(event){
+    // 若点击的不是小圆点，则忽视该事件
     if(event.target.tagName.toLowerCase()!== 'span'){
       return;
     }
     const myindex = event.target.getAttribute('index');
-    if(myindex === index){
-      return;
-    }
-    if(animating){
-      console.log("bye");
+    if(myindex === index || animating){
       return;
     }
     animate((myindex-index)*-600);
     index = myindex;
     showButton();
   }
+  // 调用animate方法的同时改变触发对应小圆点
   function runAnimate(offset){
     if(animating){
       return;
@@ -85,12 +86,13 @@ window.onload = function (){
   }
   // 自动播放方法，鼠标不在container上时候触发
   function play(){
-    timer = setTimeout(function(){runAnimate(-600);play();},changetime);
+    // timer = setTimeout(function(){runAnimate(-600);play();},changetime);
+    timer = setInterval(function(){runAnimate(-600);},changetime);
   }
   // 当鼠标移动到container上时候停止滚动
   function stop(){
     if(timer){
-      clearTimeout(timer);
+      clearInterval(timer);
     }
   }
   // 为左箭头右箭头添加了响应时间
